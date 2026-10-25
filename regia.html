@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Regia sottotitoli</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f4f2ee;--surface:#fff;--text:#1f1d1a;--muted:#6f6a62;--line:#e1dbd0;--accent:#1f5fa8;--accent-bg:#e3eefb;
+  --ok:#2e7d4f;--warn:#9a6400;--bad:#b0392c;--past:#9a958d}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15171b;--surface:#1e2127;--text:#e8e5de;--muted:#8b8e96;
+  --line:#2d3038;--accent:#7fb2ee;--accent-bg:#1d2b3d;--ok:#6fbf8a;--warn:#e6b85c;--bad:#e07a6f;--past:#6f727a}}
+:root[data-theme="dark"]{--bg:#15171b;--surface:#1e2127;--text:#e8e5de;--muted:#8b8e96;--line:#2d3038;--accent:#7fb2ee;--accent-bg:#1d2b3d;--ok:#6fbf8a;--warn:#e6b85c;--bad:#e07a6f;--past:#6f727a}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}
+button,select,textarea,input{font:inherit;color:inherit}
+button{cursor:pointer;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:10px 14px;font-weight:500}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+button.danger{color:var(--bad)}
+header{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line);
+  padding:calc(env(safe-area-inset-top) + 10px) 16px 10px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.grow{flex:1;min-width:0}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--muted);margin-right:6px}
+.dot.ok{background:var(--ok)}.dot.off{background:var(--bad)}.dot.wait{background:var(--warn)}
+.small{font-size:13px;color:var(--muted)}
+.statebar{margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.pill{font-size:14px;font-weight:600;padding:6px 10px;border-radius:999px;background:var(--surface);border:1px solid var(--line)}
+.pill.on{color:var(--ok);border-color:var(--ok)}
+select{padding:9px 10px;border-radius:10px;border:1px solid var(--line);background:var(--surface);max-width:100%}
+main{max-width:760px;margin:0 auto;padding:12px 16px calc(env(safe-area-inset-bottom) + 110px)}
+.par{display:flex;gap:12px;padding:12px;border-radius:10px;cursor:pointer;border:1px solid transparent;
+  font:400 18px/1.55 "Source Serif 4",Georgia,serif;-webkit-tap-highlight-color:transparent}
+.par:hover{border-color:var(--line)}
+.par .n{font:500 12px Inter,system-ui,sans-serif;color:var(--muted);min-width:22px;padding-top:5px;text-align:right}
+.par.h{font-weight:600}
+.par.past{color:var(--past)}
+.par.now{background:var(--accent-bg);border-color:var(--accent);box-shadow:inset 4px 0 0 var(--accent)}
+.par .en{display:none;font-size:.85em;color:var(--muted);font-style:italic;margin-top:4px}
+body.showen .par .en{display:block}
+nav{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--bg);border-top:1px solid var(--line);
+  padding:10px 16px calc(env(safe-area-inset-bottom) + 10px);display:flex;gap:10px;justify-content:center}
+nav button{flex:1;max-width:340px;font-size:18px;padding:16px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;margin:16px 0}
+.card h2{font-size:17px;margin:0 0 8px}
+textarea{width:100%;min-height:120px;border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--bg);font:13px ui-monospace,monospace}
+.msg{font-size:14px;margin-top:8px;white-space:pre-line}
+.msg.err{color:var(--bad)}.msg.ok{color:var(--ok)}
+details summary{cursor:pointer;font-weight:600;padding:6px 0}
+.list li{display:flex;gap:8px;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--line)}
+.list{list-style:none;padding:0;margin:8px 0 0}
+#login{max-width:420px;margin:18vh auto 0;text-align:center}
+.demo{background:var(--accent-bg);color:var(--text);font-size:13px;padding:8px 12px;border-radius:8px;margin-top:8px}
+</style>
+</head>
+<body>
+<div id="login" hidden>
+  <div class="card">
+    <h2>Regia dei sottotitoli</h2>
+    <p class="small">Accedi con l'account Google autorizzato a guidare i sottotitoli del culto.</p>
+    <button class="primary" id="btnLogin">Accedi con Google</button>
+    <div class="msg err" id="loginErr"></div>
+  </div>
+</div>
+
+<div id="app" hidden>
+<header>
+  <div class="row">
+    <div class="grow small"><i class="dot" id="dot"></i><span id="conn">Connessione…</span> · <span id="who"></span></div>
+    <button id="btnEn" aria-pressed="false" title="Mostra anche l'inglese">EN</button>
+    <button id="btnOut">Esci</button>
+  </div>
+  <div class="statebar">
+    <select id="sel" aria-label="Sermone"></select>
+    <span class="pill" id="pill">—</span>
+    <button class="primary" id="btnStart">Inizia</button>
+    <button id="btnEnd">Termina</button>
+  </div>
+  <div class="demo" id="demoNote" hidden>Modalità demo: apri la pagina dei fedeli in un'altra scheda di questo stesso browser per vedere la sincronizzazione.</div>
+</header>
+
+<main>
+  <div id="list"></div>
+
+  <details class="card" id="gestione">
+    <summary>Gestione sermoni</summary>
+    <h2 style="margin-top:12px">Carica un sermone</h2>
+    <p class="small">Scegli il file .json preparato con la traduzione, oppure incollane il contenuto qui sotto.</p>
+    <input type="file" id="file" accept=".json,application/json">
+    <textarea id="json" placeholder='{"id": "2026-11-01", "titolo_it": "...", "paragrafi": [ ... ]}'></textarea>
+    <div class="row" style="margin-top:8px"><button class="primary" id="btnSave">Salva sermone</button></div>
+    <div class="msg" id="saveMsg"></div>
+    <h2 style="margin-top:20px">Sermoni salvati</h2>
+    <ul class="list" id="saved"></ul>
+  </details>
+</main>
+
+<nav>
+  <button id="btnPrev">◀ Indietro</button>
+  <button class="primary" id="btnNext">Avanti ▶</button>
+</nav>
+</div>
+
+<script type="module">
+import { backend, DEMO, validaSermone } from './backend.js';
+
+const $ = id => document.getElementById(id);
+const esc = s => { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML; };
+
+let live = null, sermon = null, viewId = null, unsubSermon = null, index = {};
+
+// ----- accesso -----
+$('btnLogin').onclick = async () => {
+  $('loginErr').textContent = '';
+  try { await backend.signIn(); } catch (e) { $('loginErr').textContent = 'Accesso non riuscito: ' + (e.code || e.message); }
+};
+$('btnOut').onclick = () => backend.signOut();
+backend.onAuth(u => {
+  $('login').hidden = !!u; $('app').hidden = !u;
+  $('who').textContent = u ? (u.nome || u.email) : '';
+  $('btnOut').hidden = DEMO;
+});
+$('demoNote').hidden = !DEMO;
+
+let showEn = false;
+$('btnEn').onclick = () => { showEn = !showEn; document.body.classList.toggle('showen', showEn); $('btnEn').setAttribute('aria-pressed', showEn); };
+
+backend.onConnection(v => { $('dot').className = 'dot ' + (v ? 'ok' : 'off'); $('conn').textContent = v ? 'Collegato' : 'Non collegato'; });
+
+// ----- elenco sermoni -----
+backend.onIndex(ix => {
+  index = ix || {};
+  const ids = Object.keys(index).sort().reverse();
+  const cur = live?.sermonId;
+  $('sel').innerHTML = '<option value="">— scegli il sermone —</option>' +
+    ids.map(id => `<option value="${esc(id)}">${esc(index[id].data || id)} · ${esc(index[id].titolo_it || id)}</option>`).join('');
+  $('sel').value = cur && index[cur] ? cur : (viewId && index[viewId] ? viewId : '');
+  $('saved').innerHTML = ids.length ? ids.map(id => `<li><span>${esc(index[id].data || id)} · ${esc(index[id].titolo_it || '')}${id === cur ? ' <b>(in uso)</b>' : ''}</span>
+    <button class="danger" data-del="${esc(id)}">Elimina</button></li>`).join('') : '<li class="small">Nessun sermone salvato.</li>';
+  if (!viewId && !cur && ids.length) showSermon(ids[0]);
+});
+$('saved').onclick = async e => {
+  const id = e.target.dataset?.del; if (!id) return;
+  if (id === live?.sermonId) { alert('Questo sermone è in uso per il culto: scegline un altro prima di eliminarlo.'); return; }
+  if (confirm('Eliminare il sermone ' + id + '?')) await backend.deleteSermon(id);
+};
+
+$('sel').onchange = async () => {
+  const id = $('sel').value; if (!id) return;
+  if (live?.stato === 'in_corso' && live.sermonId !== id && !confirm('Il culto è in corso con un altro sermone. Passare a questo?')) { $('sel').value = live.sermonId; return; }
+  await backend.setLive({ sermonId: id, idx: -1, stato: 'attesa' });
+};
+
+function showSermon(id) {
+  if (id === viewId) return;
+  viewId = id; sermon = null;
+  if (unsubSermon) unsubSermon();
+  unsubSermon = id ? backend.onSermon(id, s => { sermon = s; renderList(); paint(); }) : null;
+  if (!id) renderList();
+}
+
+function renderList() {
+  if (!sermon) { $('list').innerHTML = '<div class="card small">Scegli un sermone in alto, oppure caricane uno in "Gestione sermoni".</div>'; return; }
+  $('list').innerHTML = sermon.paragrafi.map((p, i) =>
+    `<div class="par ${p.tipo === 'h' ? 'h' : ''}" data-i="${i}" id="r${i}"><span class="n">${i + 1}</span>
+      <div>${esc(p.it)}<div class="en" lang="en">${esc(p.en)}</div></div></div>`).join('');
+}
+
+// ----- stato del culto -----
+backend.onLive(v => {
+  live = v || null;
+  if (live?.sermonId) { showSermon(live.sermonId); if (index[live.sermonId]) $('sel').value = live.sermonId; }
+  paint();
+});
+
+let lastIdx = null;
+function paint() {
+  const n = sermon?.paragrafi.length || 0, st = live?.stato, idx = Number.isInteger(live?.idx) ? live.idx : -1;
+  const active = sermon && live?.sermonId === viewId;
+  const pill = $('pill');
+  pill.className = 'pill' + (active && st === 'in_corso' ? ' on' : '');
+  pill.textContent = !active ? 'Non in uso' : st === 'in_corso' ? `In corso · ${idx + 1} di ${n}` : st === 'finito' ? 'Terminato' : 'In attesa';
+  $('btnStart').textContent = active && st === 'finito' ? 'Riprendi' : 'Inizia';
+  $('btnStart').hidden = active && st === 'in_corso';
+  $('btnStart').disabled = !sermon; $('btnEnd').hidden = !(active && st === 'in_corso');
+  document.querySelectorAll('.par').forEach((el, i) => {
+    el.classList.toggle('now', active && st === 'in_corso' && i === idx);
+    el.classList.toggle('past', active && st === 'in_corso' && i < idx);
+  });
+  if (active && st === 'in_corso' && idx !== lastIdx) {
+    lastIdx = idx;
+    $('r' + idx)?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }
+}
+
+async function go(i) {
+  if (!sermon) return;
+  const n = sermon.paragrafi.length;
+  i = Math.max(0, Math.min(n - 1, i));
+  live = { ...(live || {}), sermonId: viewId, idx: i, stato: 'in_corso' };
+  paint();
+  await backend.setLive({ sermonId: viewId, idx: i, stato: 'in_corso' });
+}
+const curIdx = () => (live?.sermonId === viewId && live?.stato === 'in_corso' && Number.isInteger(live.idx)) ? live.idx : -1;
+
+$('list').onclick = e => { const el = e.target.closest('.par'); if (el) go(Number(el.dataset.i)); };
+$('btnNext').onclick = () => go(curIdx() + 1);
+$('btnPrev').onclick = () => go(curIdx() - 1);
+$('btnStart').onclick = () => go(live?.sermonId === viewId && Number.isInteger(live?.idx) && live.idx >= 0 ? live.idx : 0);
+$('btnEnd').onclick = () => { if (confirm('Terminare la predicazione?')) backend.setLive({ stato: 'finito' }); };
+
+// Tastiera e "voltapagine" Bluetooth (inviano frecce o PagSu/PagGiù)
+addEventListener('keydown', e => {
+  if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) return;
+  if (['ArrowRight', 'ArrowDown', 'PageDown', ' '].includes(e.key)) { e.preventDefault(); go(curIdx() + 1); }
+  if (['ArrowLeft', 'ArrowUp', 'PageUp'].includes(e.key)) { e.preventDefault(); go(curIdx() - 1); }
+});
+
+// ----- caricamento -----
+$('file').onchange = async () => { const f = $('file').files[0]; if (f) $('json').value = await f.text(); };
+$('btnSave').onclick = async () => {
+  const m = $('saveMsg'); m.className = 'msg';
+  let d;
+  try { d = JSON.parse($('json').value); } catch { m.className = 'msg err'; m.textContent = 'Il testo non è un JSON valido.'; return; }
+  const err = validaSermone(d);
+  if (err.length) { m.className = 'msg err'; m.textContent = err.slice(0, 6).join('\n'); return; }
+  if (index[d.id] && !confirm('Esiste già un sermone con id ' + d.id + '. Sostituirlo?')) return;
+  try {
+    await backend.saveSermon(d);
+    m.className = 'msg ok'; m.textContent = `Salvato: ${d.paragrafi.length} paragrafi. Sceglilo in alto per usarlo nel culto.`;
+    $('json').value = ''; $('file').value = '';
+  } catch (e) { m.className = 'msg err'; m.textContent = 'Salvataggio non riuscito: ' + (e.code || e.message) + '\nControlla di aver effettuato l\'accesso con un account autorizzato.'; }
+};
+</script>
+</body>
+</html>

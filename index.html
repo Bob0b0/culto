@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#14161a">
+<title>Sermon in English</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#14161a; --surface:#1d2026; --text:#e9e6df; --muted:#7d8089; --past:#8a8c93;
+  --accent:#e6b85c; --accent-bg:#2c2618; --line:#2b2e35; --ok:#6fbf8a; --warn:#e6b85c; --bad:#e07a6f;
+  --fs:20px;
+}
+:root[data-theme="light"]{
+  --bg:#f7f4ee; --surface:#ffffff; --text:#1f1d1a; --muted:#6f6a62; --past:#8f8a82;
+  --accent:#8a5a00; --accent-bg:#fbefd2; --line:#e3ddd2; --ok:#2e7d4f; --warn:#8a5a00; --bad:#b0392c;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text)}
+body{font-family:Inter,system-ui,sans-serif;-webkit-text-size-adjust:100%;min-height:100vh}
+header{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line);
+  padding:calc(env(safe-area-inset-top) + 10px) 16px 10px;display:flex;align-items:center;gap:10px}
+.status{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);flex:1;min-width:0}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--muted);flex:none}
+.dot.live{background:var(--ok);box-shadow:0 0 0 0 var(--ok);animation:pulse 2s infinite}
+.dot.wait{background:var(--warn)} .dot.off{background:var(--bad)}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(111,191,138,.5)}70%{box-shadow:0 0 0 8px rgba(111,191,138,0)}100%{box-shadow:0 0 0 0 rgba(111,191,138,0)}}
+.status span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tools{display:flex;gap:6px}
+.tools button{font:500 14px Inter,system-ui,sans-serif;color:var(--text);background:var(--surface);border:1px solid var(--line);
+  border-radius:8px;min-width:38px;height:36px;padding:0 10px;cursor:pointer}
+.tools button[aria-pressed="true"]{border-color:var(--accent);color:var(--accent)}
+main{max-width:680px;margin:0 auto;padding:20px 16px calc(env(safe-area-inset-bottom) + 120px)}
+.intro h1{font:600 calc(var(--fs) * 1.15)/1.3 "Source Serif 4",Georgia,serif;margin:4px 0 6px}
+.intro p{color:var(--muted);font-size:14px;margin:0 0 6px}
+.banner{margin:16px 0 8px;padding:12px 14px;border-radius:10px;background:var(--surface);border:1px solid var(--line);font-size:15px;line-height:1.5}
+.par{font:400 var(--fs)/1.6 "Source Serif 4",Georgia,serif;margin:0;padding:10px 12px;border-radius:10px;
+  transition:color .4s,background-color .4s;scroll-margin:30vh}
+.par.h{font-weight:600;font-size:calc(var(--fs) * 1.05);margin-top:18px}
+.par .it{display:none;font-size:.78em;color:var(--muted);font-style:italic;margin-top:6px}
+body.showit .par .it{display:block}
+body.running .par.past{color:var(--past)}
+.par.now{background:var(--accent-bg);color:var(--text);box-shadow:inset 3px 0 0 var(--accent)}
+.empty{text-align:center;color:var(--muted);padding:30vh 16px 0;font-size:17px;line-height:1.6}
+#back{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom) + 18px);z-index:6;
+  font:600 15px Inter,system-ui,sans-serif;background:var(--accent);color:var(--bg);border:0;border-radius:999px;
+  padding:12px 20px;cursor:pointer;display:none}
+#back.show{display:block}
+@media (prefers-reduced-motion:reduce){.dot.live{animation:none}.par{transition:none}}
+</style>
+</head>
+<body>
+<header>
+  <div class="status" aria-live="polite"><i class="dot" id="dot"></i><span id="stato">Connecting…</span></div>
+  <div class="tools">
+    <button id="smaller" aria-label="Smaller text">A−</button>
+    <button id="bigger" aria-label="Larger text">A+</button>
+    <button id="it" aria-pressed="false" aria-label="Show original Italian">IT</button>
+    <button id="theme" aria-label="Switch light or dark">◐</button>
+  </div>
+</header>
+<main id="main"><div class="empty" id="empty">Connecting…</div></main>
+<button id="back">↓ Back to the live passage</button>
+
+<script type="module">
+import { backend, DEMO } from './backend.js';
+import { CONFIG } from './config.js';
+
+const $ = id => document.getElementById(id);
+const store = {
+  get(k, d) { try { const v = localStorage.getItem('culto_' + k); return v === null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem('culto_' + k, JSON.stringify(v)); } catch {} }
+};
+
+// ----- preferenze del lettore -----
+let fs = store.get('fs', 20), theme = store.get('theme', 'dark'), showIt = store.get('showit', false);
+const applyPrefs = () => {
+  document.documentElement.style.setProperty('--fs', fs + 'px');
+  document.documentElement.dataset.theme = theme;
+  document.querySelector('meta[name=theme-color]').content = theme === 'dark' ? '#14161a' : '#f7f4ee';
+  document.body.classList.toggle('showit', showIt);
+  $('it').setAttribute('aria-pressed', showIt);
+  $('theme').textContent = theme === 'dark' ? '☀︎' : '☾︎';
+};
+applyPrefs();
+$('smaller').onclick = () => { fs = Math.max(15, fs - 2); store.set('fs', fs); applyPrefs(); recentre(); };
+$('bigger').onclick = () => { fs = Math.min(34, fs + 2); store.set('fs', fs); applyPrefs(); recentre(); };
+$('theme').onclick = () => { theme = theme === 'dark' ? 'light' : 'dark'; store.set('theme', theme); applyPrefs(); };
+$('it').onclick = () => { showIt = !showIt; store.set('showit', showIt); applyPrefs(); recentre(); };
+
+// ----- schermo sempre acceso -----
+let lock = null;
+async function keepAwake() {
+  try { if ('wakeLock' in navigator && !lock) { lock = await navigator.wakeLock.request('screen'); lock.addEventListener('release', () => lock = null); } } catch {}
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') keepAwake(); });
+addEventListener('pointerdown', keepAwake, { once: true });
+keepAwake();
+
+// ----- stato -----
+let live = null, sermon = null, sermonId = null, unsubSermon = null, online = true, following = true, lastIdx = null;
+
+function setStatus() {
+  const dot = $('dot'), t = $('stato');
+  dot.className = 'dot';
+  if (!online) { dot.classList.add('off'); t.textContent = 'Reconnecting…'; return; }
+  const st = live?.stato;
+  if (!sermon) { dot.classList.add('wait'); t.textContent = 'Waiting for the service'; }
+  else if (st === 'in_corso') { dot.classList.add('live'); t.textContent = 'Live · ' + (DEMO ? 'demo' : CONFIG.churchNameEn); }
+  else if (st === 'finito') { t.textContent = 'The sermon has ended'; }
+  else { dot.classList.add('wait'); t.textContent = 'Starting soon'; }
+}
+
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+function renderSermon() {
+  const main = $('main');
+  if (!sermon) {
+    main.innerHTML = `<div class="empty">Welcome.<br>The English text of the sermon will appear here when the service begins.</div>`;
+    return;
+  }
+  const date = sermon.data ? new Date(sermon.data + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+  main.innerHTML = `
+    <div class="intro"><h1>${esc(sermon.title_en || 'Sermon')}</h1>
+      <p>${esc(CONFIG.churchNameEn)}${date ? ' · ' + esc(date) : ''}</p></div>
+    <div class="banner" id="banner" hidden></div>
+    ${sermon.paragrafi.map((p, i) =>
+      `<p class="par ${p.tipo === 'h' ? 'h' : ''}" id="p${i}">${esc(p.en)}<span class="it" lang="it">${esc(p.it)}</span></p>`).join('')}`;
+  lastIdx = null;
+}
+
+function update() {
+  setStatus();
+  if (!sermon) return;
+  const st = live?.stato, idx = Number.isInteger(live?.idx) ? live.idx : -1;
+  const banner = $('banner');
+  document.body.classList.toggle('running', st === 'in_corso');
+  if (st === 'in_corso') banner.hidden = true;
+  else {
+    banner.hidden = false;
+    banner.textContent = st === 'finito'
+      ? 'The sermon has ended. Thank you for joining us — you can still scroll back and read it.'
+      : 'The sermon will begin shortly. The passage being preached will be highlighted and the text will scroll by itself.';
+  }
+  document.querySelectorAll('.par').forEach((el, i) => {
+    el.classList.toggle('now', st === 'in_corso' && i === idx);
+    el.classList.toggle('past', st === 'in_corso' && i < idx);
+  });
+  if (st === 'in_corso' && idx !== lastIdx) { lastIdx = idx; if (following) recentre(true); }
+  if (st !== 'in_corso') { following = true; $('back').classList.remove('show'); }
+}
+
+// ----- scorrimento automatico / manuale -----
+let autoScrolling = false, autoTimer = null;
+function recentre(smooth) {
+  const el = document.querySelector('.par.now');
+  if (!el || !following) return;
+  autoScrolling = true; clearTimeout(autoTimer);
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  el.scrollIntoView({ block: 'center', behavior: smooth && !reduce ? 'smooth' : 'auto' });
+  autoTimer = setTimeout(() => autoScrolling = false, 900);
+}
+function userScrolled() {
+  if (autoScrolling || live?.stato !== 'in_corso') return;
+  const el = document.querySelector('.par.now'); if (!el) return;
+  const r = el.getBoundingClientRect();
+  const visible = r.bottom > 60 && r.top < innerHeight - 60;
+  following = visible;
+  $('back').classList.toggle('show', !visible);
+}
+['touchmove', 'wheel'].forEach(ev => addEventListener(ev, () => { autoScrolling = false; }, { passive: true }));
+addEventListener('scroll', userScrolled, { passive: true });
+$('back').onclick = () => { following = true; $('back').classList.remove('show'); recentre(true); };
+
+// ----- collegamento -----
+backend.onConnection(v => { online = v; setStatus(); });
+let first = true;
+backend.onLive(v => {
+  live = v || null;
+  const id = live?.sermonId || null;
+  if (id !== sermonId || first) {
+    first = false;
+    sermonId = id; sermon = null;
+    if (unsubSermon) unsubSermon();
+    unsubSermon = id ? backend.onSermon(id, s => { sermon = s; renderSermon(); update(); }) : null;
+    if (!id) renderSermon();
+  }
+  update();
+});
+</script>
+</body>
+</html>

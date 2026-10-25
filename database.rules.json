@@ -1,0 +1,26 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "live": {
+      ".read": true,
+      ".write": "auth != null && auth.token.email_verified == true && (auth.token.email == 'EMAIL_REGIA_1' || auth.token.email == 'EMAIL_REGIA_2')",
+      "sermonId": { ".validate": "newData.isString() && newData.val().length <= 60" },
+      "idx": { ".validate": "newData.isNumber() && newData.val() >= -1 && newData.val() < 2000" },
+      "stato": { ".validate": "newData.val() == 'attesa' || newData.val() == 'in_corso' || newData.val() == 'finito'" },
+      "aggiornato": { ".validate": "newData.isNumber()" },
+      "$altro": { ".validate": false }
+    },
+
+    "sermons": {
+      ".read": true,
+      ".write": "auth != null && auth.token.email_verified == true && (auth.token.email == 'EMAIL_REGIA_1' || auth.token.email == 'EMAIL_REGIA_2')"
+    },
+
+    "sermonIndex": {
+      ".read": true,
+      ".write": "auth != null && auth.token.email_verified == true && (auth.token.email == 'EMAIL_REGIA_1' || auth.token.email == 'EMAIL_REGIA_2')"
+    }
+  }
+}
